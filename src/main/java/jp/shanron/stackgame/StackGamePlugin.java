@@ -32,6 +32,7 @@ public final class StackGamePlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         Bukkit.getPluginManager().registerEvents(this, this);
         startDropWorker();
+        startBoundaryWorker();
         getLogger().info("StackGame enabled.");
     }
 
@@ -152,7 +153,44 @@ public final class StackGamePlugin extends JavaPlugin implements Listener {
 
         fallingBlock.setDropItem(false);
         fallingBlock.setHurtEntities(false);
-        fallingBlock.setCancelDrop(true);
+        fallingBlock.setCancelDrop(false);
+        fallingBlock.addScoreboardTag("stackgame");
+    }
+
+    private void startBoundaryWorker() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!ready()) return;
+
+                World world = min.getWorld();
+
+                for (FallingBlock falling : world.getEntitiesByClass(FallingBlock.class)) {
+                    if (!falling.getScoreboardTags().contains("stackgame")) continue;
+
+                    Location l = falling.getLocation();
+
+                    // Never allow the falling entity to leave the interior X/Z footprint.
+                    double minX = min.getBlockX() + 0.5;
+                    double maxX = max.getBlockX() + 0.5;
+                    double minZ = min.getBlockZ() + 0.5;
+                    double maxZ = max.getBlockZ() + 0.5;
+
+                    double x = Math.max(minX, Math.min(maxX, l.getX()));
+                    double z = Math.max(minZ, Math.min(maxZ, l.getZ()));
+
+                    if (x != l.getX() || z != l.getZ()) {
+                        falling.teleport(new Location(world, x, l.getY(), z, l.getYaw(), l.getPitch()));
+                        falling.setVelocity(falling.getVelocity().setX(0).setZ(0));
+                    }
+
+                    // If the pile is already full, remove anything trying to land above the top.
+                    if (l.getY() > max.getBlockY() + 2.0) {
+                        // Keep falling normally; this check is only for lateral boundary handling.
+                    }
+                }
+            }
+        }.runTaskTimer(this, 1L, 1L);
     }
 
     private void resetArea() {
@@ -216,7 +254,8 @@ public final class StackGamePlugin extends JavaPlugin implements Listener {
         );
         fallingBlock.setDropItem(false);
         fallingBlock.setHurtEntities(false);
-        fallingBlock.setCancelDrop(true);
+        fallingBlock.setCancelDrop(false);
+        fallingBlock.addScoreboardTag("stackgame");
     }
 
     @EventHandler
