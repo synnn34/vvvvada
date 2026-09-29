@@ -1,0 +1,16 @@
+name: StackGame
+version: 1.0.0
+main: jp.shanron.stackgame.StackGamePlugin
+description: Falling-block stacking game for livestream interaction
+author: Shanron
+api-version: '26.1'
+
+commands:
+  stack:
+    description: StackGame control command
+    usage: /stack <setup|block|drop|reset|info>
+    permission: stackgame.admin
+
+permissions:
+  stackgame.admin:
+    default: op
